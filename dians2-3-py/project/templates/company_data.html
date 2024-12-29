@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historical Data - {{ company_code }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-image: url('https://flextrade.com/wp-content/uploads/2019/09/Fotolia_257957753_Subscription_Monthly_M.jpg');
+            background-size: cover; /* Ensures the image covers the entire page */
+            background-position: center; /* Centers the image */
+            background-repeat: no-repeat; /* Ensures the image does not repeat */
+        }
+
+        .table-custom {
+
+            background-color: rgba(224, 247, 250, 0.4); /* Semi-transparent light blue color */
+            color: #333; /* Darker text color for contrast */
+        }
+
+        th, td {
+            font-weight: bold; /* Make text bold */
+        }
+         h1 {
+        color: white; /* White color for the h1 text */
+             text-align: center;
+    }
+         #response-container p{
+             color: white;
+         }
+    </style>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script>
+        function paginateData(page) {
+            // Get all rows
+            let rows = document.querySelectorAll('.data-row');
+            let rowsPerPage = 10; // Number of rows per page
+            let start = (page - 1) * rowsPerPage;
+            let end = page * rowsPerPage;
+
+            // Hide all rows
+            rows.forEach(row => row.style.display = 'none');
+
+            // Show only the rows for the current page
+            for (let i = start; i < end && i < rows.length; i++) {
+                rows[i].style.display = '';
+            }
+
+            // Update active page
+            document.querySelectorAll('.pagination-button').forEach(button => {
+                button.classList.remove('active');
+            });
+            document.getElementById('page-' + page).classList.add('active');
+        }
+
+        window.onload = function() {
+            paginateData(1); // Initialize with page 1
+        };
+    </script>
+</head>
+<body>
+
+<!-- Display Selected Company -->
+<div class="container mt-5">
+    <h1>Историски податоци за {{ company_code }}</h1>
+
+    <!-- Pagination Controls -->
+    <div class="d-flex justify-content-center mt-4">
+        <button id="page-1" class="btn btn-outline-secondary pagination-button" onclick="paginateData(1)">1</button>
+        <button id="page-2" class="btn btn-outline-secondary pagination-button" onclick="paginateData(2)">2</button>
+        <button id="page-3" class="btn btn-outline-secondary pagination-button" onclick="paginateData(3)">3</button>
+        <button id="page-4" class="btn btn-outline-secondary pagination-button" onclick="paginateData(4)">4</button>
+    </div>
+    <!-- Table to Display Historical Data -->
+    <table class="table table-striped table-custom mt-3">
+        <thead>
+            <tr>
+                <th scope="col">Record Date</th>
+                <th scope="col">Last Price</th>
+                <th scope="col">High Price</th>
+                <th scope="col">Low Price</th>
+                <th scope="col">Average Price</th>
+                <th scope="col">Percent Change</th>
+                <th scope="col">Volume</th>
+                <th scope="col">Turnover Best</th>
+                <th scope="col">Total Turnover</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in historical_data %}
+                <tr class="data-row">
+                    <td>{{ row['record_date'] }}</td>
+                    <td>{{ row['last_price'] }}</td>
+                    <td>{{ row['high_price'] }}</td>
+                    <td>{{ row['low_price'] }}</td>
+                    <td>{{ row['avg_price'] }}</td>
+                    <td>{{ row['percent_change']|int }}</td>
+                    <td>{{ row['volume'] }}</td>
+                    <td>{{ row['turnover_best'] }}</td>
+                    <td>{{ row['total_turnover'] }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+
+    <div class="mt-5 text-center">
+        <form id="technical-analysis-form" class="d-inline">
+            <button type="submit" class="btn btn-primary">Technical Analysis</button>
+        </form>
+       <br><br>
+        <form id="fundamental-analysis-form" class="d-inline mx-3">
+            <button type="submit" class="btn btn-primary">Fundamental Analysis</button>
+        </form>
+        <br><br>
+        <form id="lstm-form" class="d-inline">
+            <button type="submit" class="btn btn-primary">LSTM</button>
+        </form>
+    </div>
+
+    <div id="response-container" class="mt-4 text-center"></div>
+
+</div>
+
+<script>
+$(document).ready(function() {
+    // Get companyCode from the page
+    var companyCode = "{{ company_code }}";
+
+    // AJAX form submission for Technical Analysis
+    $('#technical-analysis-form').submit(function(event) {
+        event.preventDefault();
+        $.post('/technical-analysis', { companyCode: companyCode }, function(response) {
+            var text = "One day: " + response.predicted_signal_1D + " - ";
+            text = text + "One week: " + response.predicted_signal_1W  + " - ";
+            text = text + "One month: " + response.predicted_signal_1M;
+            $('#response-container').html('<p>' + text + '</p>');
+        });
+    });
+
+    // AJAX form submission for Fundamental Analysis
+    $('#fundamental-analysis-form').submit(function(event) {
+        event.preventDefault();
+        $.post('/fundamental-analysis', { companyCode: companyCode }, function(response) {
+            $('#response-container').html('<p>' + response + '</p>');
+        });
+    });
+
+    // AJAX form submission for LSTM
+    $('#lstm-form').submit(function(event) {
+        event.preventDefault();
+        $.post('/lstm', { companyCode: companyCode }, function(response) {
+            $('#response-container').html('<p>' + response.predicted_price + '</p>');
+        });
+    });
+});
+</script>
+</body>
+</html>
